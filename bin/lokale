@@ -1,6 +1,32 @@
 #!/usr/bin/env ruby
 
 require 'lokale'
+require 'lokale/find_dir'
+require 'lokale/colorize'
+require 'lokale/options'
+
+git_path = find_git_repo
+if git_path.nil? 
+	puts "Could not find any git repository."
+	exit
+end
+
+xcode_project = xcode_project_name(git_path)
+if xcode_project.nil?
+	puts "Found git repository (#{git_path}) does not contain an Xcode project."
+	exit
+end
+
+
+settings = Settings.get
+settings.actions.each do |s|
+	puts s
+	puts s.type
+	puts s.arg
+	puts s.precedence
+end
+
+puts "Analyzing Xcode project '#{xcode_project}'".green
 
 macros = [
     Lokale::Macro.new("NSLocalizedString", /NSLocalizedString\("(.+?)",\s*comment:\s*"(.*?)"\)/), 
@@ -9,7 +35,6 @@ macros = [
     #LocalizationMacro.new("ObjC Table String", /NSLocalizedStringFromTableInBundle\((.*?),/)
 ]
 
-puts Dir.pwd
 agent = Lokale::Agent.new(Dir.pwd, macros)
 reporter = Lokale::Reporter.new(agent)
 reporter.print_summary

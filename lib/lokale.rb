@@ -1,4 +1,5 @@
-# require "lokale/version"
+require "lokale/version"
+require "lokale/colorize"
 require "set"
 
 class String
@@ -22,9 +23,9 @@ class String
   end
 end
 
-module Lokale 
 
-  class LocalizedString    
+module Lokale 
+  class LString
     attr_accessor :key, :str, :note, :target
 
     def initialize(key, str, note, target)
@@ -33,13 +34,13 @@ module Lokale
 
     def self.strings_from_file(file_path, lang)
       regex = /(?:\/* (.+) *\/.*\n)?"(.+)" *= *"(.+)";/
-      File.read(file_path).scan(regex).map { |m| LocalizedString.new(m[1], m[2], m[0], lang) }
+      File.read(file_path).scan(regex).map { |m| LString.new(m[1], m[2], m[0], lang) }
     end
   end
 
   #
 
-  class LocalizationFile
+  class LFile
     attr_reader :path, :lang, :name, :type
     def initialize(file_path)
       @path = file_path
@@ -54,7 +55,7 @@ module Lokale
 
     def self.try_to_read(file_path)
       return nil unless file_path.localization_file?
-      LocalizationFile.new(file_path)
+      LFile.new(file_path)
     end
 
     def inspect 
@@ -68,7 +69,7 @@ module Lokale
     def parsed
       return @parsed unless @parsed.nil?
       @parsed = case type
-        when "strings"      then LocalizedString.strings_from_file(@path, @lang)
+        when "strings"      then LString.strings_from_file(@path, @lang)
         when "stringsdict"  then []
         else nil
       end      
@@ -144,7 +145,7 @@ module Lokale
 
     def get_localization_files
       return @lfiles unless @lfiles.nil?
-      @lfiles = proj_files.map { |file| LocalizationFile.try_to_read(file) }.compact
+      @lfiles = proj_files.map { |file| LFile.try_to_read(file) }.compact
     end
 
     def find_all_localization_calls
@@ -224,9 +225,10 @@ module Lokale
       end
 
       if repeats_repot.empty? 
-        puts "Repeats not found."
+        puts "Repeats not found.".green
         puts
       else
+        puts "Found repeats in strings files.".red
         puts repeats_repot
         puts
       end
@@ -236,29 +238,28 @@ module Lokale
       diferences_repot = ""
 
       @agent.lfiles.group_by { |f| f.full_name }.each do |file_name, files|
-        base_lang = files.select { |f| f.lang == "Base" }.first.nil? ? "en" : "Base"
+        base_lang = files.any? { |f| f.lang == "Base" } ? "Base" : "en"
         files = files.select { |f| f.lang != base_lang }
         all_keys = files.map(&:keys).compact.map(&:to_set)
         next if all_keys.empty?
-        shared_keys = all_keys.reduce(:&)
-        all_keys.map! { |ks| ks - shared_keys }
+        united_keys = all_keys.reduce(:|)
+        all_keys.map! { |ks| united_keys - ks }
         next if all_keys.map(&:length).reduce(:+).zero?
 
-        diferences_repot << "Excess keys in file \"#{file_name}\":\n"
-        all_keys.zip(files) do |excess_keys, lfile|
-          next if excess_keys.size.zero?
-          diferences_repot << "* #{lfile.lang}: #{excess_keys.size} key(s).\n"
-          excess_keys.each { |k| diferences_repot << "#{k}\n" }
+        diferences_repot << "Missing keys in file \"#{file_name}\":\n"
+        all_keys.zip(files) do |missing_keys, lfile|
+          next if missing_keys.size.zero?
+          diferences_repot << "* #{lfile.lang} - #{missing_keys.size} key(s):\n"
+          missing_keys.each { |k| diferences_repot << "#{k}\n" }
         end
         diferences_repot << "\n"
       end
 
       if diferences_repot.empty? 
-        puts "Localization files are full."
+        puts "Localization files are full.".green
         puts
       else
-        puts "Localization files are not full."
-        puts
+        puts "Localization files are not full.".red
         puts diferences_repot
         puts
       end
