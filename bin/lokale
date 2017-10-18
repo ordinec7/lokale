@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+require 'lokale'
+
+macros = [
+    Lokale::Macro.new("NSLocalizedString", /NSLocalizedString\("(.+?)",\s*comment:\s*"(.*?)"\)/), 
+    Lokale::Macro.new("PluralString", /String.localizedPlural\("(.+?)"/),
+    #LocalizationMacro.new("ObjC String", /NSLocalizedString\("(.*)",\s*(.*)\)/),
+    #LocalizationMacro.new("ObjC Table String", /NSLocalizedStringFromTableInBundle\((.*?),/)
+]
+
+puts Dir.pwd
+agent = Lokale::Agent.new(Dir.pwd, macros)
+reporter = Lokale::Reporter.new(agent)
+reporter.print_summary
