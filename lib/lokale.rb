@@ -92,16 +92,22 @@ module Lokale
       return nil if parsed.nil?
       parsed.map(&:key)
     end
+
+     
+    def strings_file?
+      @type == "strings" || @type == "stringsdict"
+    end
   end
 
   #
 
   class Macro
-    attr_reader :regex, :found_strings, :name
+    attr_reader :regex, :found_strings, :name, :file_name
 
-    def initialize(name, regex)
+    def initialize(name, regex, file_name)
       @name = name
       @regex = regex
+      @file_name = file_name
       clear_calls
     end 
 
@@ -140,7 +146,11 @@ module Lokale
     end
 
     def proj_files 
-      Dir.glob("#{@proj_path}/**/**")
+      if block_given?
+        Dir.glob("#{@proj_path}/**/**") { |f| yield f }
+      else
+        Dir.glob("#{@proj_path}/**/**")
+      end
     end
 
     def get_localization_files
@@ -152,13 +162,28 @@ module Lokale
       @macros.each { |m| m.clear_calls }
 
       @sfiles_proceeded = 0
-      proj_files.each do |file| 
+      proj_files do |file| 
         next unless file.source_file?        
 
         file_content = File.read(file)
         @macros.each { |macro| macro.read_from file_content }
         @sfiles_proceeded += 1
       end
+    end
+
+    def copy_base
+      en_files = @lfiles.group_by { |f| f.lang }["en"].select { |f| f.strings_file? }
+      base_files = @lfiles.group_by { |f| f.lang }["Base"].select { |f| f.strings_file? }
+
+      en_files.each do |en|
+        base = base_files.select { |f| f.full_name == en.full_name }.sample
+        next if base.nil?
+        IO.copy_stream(en.path, base.path)
+      end
+    end
+
+    def append_new_macro_calls
+
     end
   end
 
@@ -184,7 +209,6 @@ module Lokale
       puts "Uniq macro calls: #{uniq_macro_calls}"
       puts
     end
-
 
     def print_files_table
       languages = @agent.lfiles.map { |e| e.lang }.to_set.to_a
@@ -249,7 +273,7 @@ module Lokale
         diferences_repot << "Missing keys in file \"#{file_name}\":\n"
         all_keys.zip(files) do |missing_keys, lfile|
           next if missing_keys.size.zero?
-          diferences_repot << "* #{lfile.lang} - #{missing_keys.size} key(s):\n"
+          diferences_repot << "*".red + " #{lfile.lang} - #{missing_keys.size} key(s):\n"
           missing_keys.each { |k| diferences_repot << "#{k}\n" }
         end
         diferences_repot << "\n"
