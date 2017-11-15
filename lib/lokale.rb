@@ -1,16 +1,9 @@
 require "lokale/version"
 require "lokale/colorize"
+require "lokale/util"
 require "set"
 
 class String
-  def rpadded(count=20)
-    "%-#{count}.#{count}s" % self
-  end
-
-  def lpadded(count=20)
-    "%#{count}.#{count}s" % self
-  end
-
   def localization_file?
     File.directory?(self) == false &&
         (self =~ /\/Pods\//) == nil &&

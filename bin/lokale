@@ -7,15 +7,10 @@ require 'lokale/options'
 
 Settings.init
 
-git_path = find_git_repo
-if git_path.nil? 
-	puts "Could not find any git repository."
-	exit
-end
-
-project_name = xcode_project_name(git_path)
-if project_name.nil?
-	puts "Found git repository (#{git_path}) does not contain an Xcode project."
+begin
+	project_path, project_name = ProjectFinder::find_proj	
+rescue Exception => e
+	puts e
 	exit
 end
 
