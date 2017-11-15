@@ -2,24 +2,25 @@
 require "optparse"
 
 class Action
-  attr_reader :type, :arg, :precedence
-  def initialize(type, arg, precedence)
-    @type = type; @arg = arg; @precedence = precedence
+    attr_reader :type, :arg, :precedence
+    def initialize(type, arg, precedence)
+      @type = type; @arg = arg; @precedence = precedence
+    end
+
+    def self.summary
+      Action.new(:summary, nil, 10)
+    end
+    def self.copy_base
+      Action.new(:copy_base, nil, 50)
+    end
+    def self.append
+      Action.new(:append, nil, 60)
+    end
   end
 
-  def self.summary
-    Action.new(:summary, nil, 10)
-  end
-  def self.copy_base
-    Action.new(:copy_base, nil, 50)
-  end
-  def self.append
-    Action.new(:append, nil, 60)
-  end
-end
 
-class Settings
-  attr_reader :actions
+class Config
+  attr_accessor :actions
 
   def self.init 
     actions = []
@@ -45,26 +46,20 @@ class Settings
       end
     end.parse!
 
-
-
     if actions.empty? 
       actions << Action.summary
     else 
       actions.sort_by! { |e| -e.precedence }
     end
 
-    @shared_settings = Settings.new(actions)
+    @config = Config.new
+    @config.actions = actions
   end
 
   def self.get
-    init if @shared_settings.nil?
-    @shared_settings
-  end
-
-  def initialize(actions)
-    @actions = actions
+    init if @config.nil?
+    @config
   end
 end
-
 
 
