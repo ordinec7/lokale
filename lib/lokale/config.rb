@@ -1,28 +1,40 @@
 
 require "optparse"
+require "lokale/util"
 
 class Action
-    attr_reader :type, :arg, :precedence
-    def initialize(type, arg, precedence)
-      @type = type; @arg = arg; @precedence = precedence
-    end
+  attr_accessor :type, :arg, :precedence
 
-    def self.summary
-      Action.new(:summary, nil, 10)
-    end
-    def self.copy_base
-      Action.new(:copy_base, nil, 50)
-    end
-    def self.append
-      Action.new(:append, nil, 60)
+  include Then
+
+  def self.summary
+    Action.new.then do |a|
+      a.type = :summary
+      a.precedence = 10
     end
   end
 
+  def self.copy_base
+    Action.new.then do |a|
+      a.type = :copy_base
+      a.precedence = 50
+    end
+  end
+
+  def self.append
+    Action.new.then do |a|
+      a.type = :append
+      a.precedence = 60
+    end
+  end
+end
 
 class Config
   attr_accessor :actions
 
   def self.init 
+    return unless @config.nil?
+
     actions = []
 
     OptionParser.new do |opts|

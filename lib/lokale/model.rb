@@ -72,7 +72,8 @@ module Lokale
   #
 
   class Macro
-    attr_reader :regex, :found_strings, :name, :file_name
+    attr_accessor :regex, :name, :localization_file, :key_index, :note_index
+    attr_reader :found_strings
 
     def initialize(name)
       @name = name
@@ -84,7 +85,13 @@ module Lokale
     end
 
     def read_from(file)
-      file.scan(@regex) { |m| @found_strings[m] += 1 }
+      file.scan(@regex) do |m| 
+      	lang = Config.get.main_lang
+      	key = m[key_index] unless key_index.nil?
+      	val = m[note_index] unless note_index.nil?
+      	lstr = LString.new(key, val, val, lang)
+      	@found_strings[lstr] += 1 
+      end
     end
 
     def uniq_count
@@ -95,4 +102,27 @@ module Lokale
       @found_strings.values.reduce(:+) || 0
     end
   end
+end
+
+
+
+
+module Lokale
+	
+	# Hashable
+	class LString 
+		def fields
+    	[@key, @str, @note, @target]
+    end
+
+		def ==(other)
+			self.class === other && other.fields == fields
+		end
+
+		alias eql? ==
+
+		def hash
+			fields.hash
+		end
+	end
 end

@@ -1,61 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'lokale'
-require 'lokale/find_dir'
-require 'lokale/colorize'
-require 'lokale/config'
-require 'lokale/reporter'
-require 'lokale/lokalefile'
 
-begin
-  project_path, project_name = ProjectFinder::find_proj   
-rescue Exception => e
-  puts e
-  exit
-end
-
-puts "Target Xcode project: '#{project_name}'".green
-
-config = Config.get
-config.read_lokalefile project_path
-
-########################################################################################
-
-class Action
-  def print(str)
-    puts str.blue
-  end
-
-  def perform(agent, reporter)
-    send(("perform_" + @type.to_s).to_sym, agent, reporter)
-  end
-
-  def perform_summary(agent, reporter)
-    print "Printing summary".blue
-    reporter.print_summary
-  end
-
-  def perform_copy_base(agent, reporter)
-    print "Copying `en` strings files to `Base`".blue
-    agent.copy_base
-  end
-
-  def perform_append(agent, reporter)
-
-  end
-end
-
-macros = [
-  Lokale::Macro.new("NSLocalizedString", /NSLocalizedString\("(.+?)",\s*comment:\s*"(.*?)"\)/, "Localizable.strings"), 
-  Lokale::Macro.new("PluralString", /String.localizedPlural\("(.+?)"/, nil),
-  #LocalizationMacro.new("ObjC String", /NSLocalizedString\("(.*)",\s*(.*)\)/),
-  #LocalizationMacro.new("ObjC Table String", /NSLocalizedStringFromTableInBundle\((.*?),/)
-]
-
-agent = Lokale::Agent.new(project_path, macros)
-reporter = Lokale::Reporter.new(agent)
-
-
-config.actions.each do |action|
-  action.perform(agent, reporter)
-end
+main = Lokale::Main.new
+main.run

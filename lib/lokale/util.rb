@@ -7,3 +7,10 @@ class String
     "%#{count}.#{count}s" % self
   end
 end
+
+module Then
+	def then		
+		yield self
+		return self
+	end
+end
