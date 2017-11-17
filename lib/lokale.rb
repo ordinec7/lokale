@@ -4,6 +4,7 @@ require 'lokale/colorize'
 require 'lokale/config'
 require 'lokale/reporter'
 require 'lokale/lokalefile'
+require 'lokale/agent'
 
 class Action
   def print(str)
@@ -50,7 +51,7 @@ module Lokale
         exit
       end
 
-      puts "Target Xcode project: '#{project_name}'".green
+      puts "Target Xcode project: '#{@project_name}'".green
     end
 
     def read_config
@@ -59,12 +60,12 @@ module Lokale
     end
 
     def init_workers
-      @agent = Lokale::Agent.new(project_path, macros)
-      @reporter = Lokale::Reporter.new(agent)
+      @agent = Lokale::Agent.new(@project_path, Config.get.macros)
+      @reporter = Lokale::Reporter.new(@agent)
     end
     
     def run_actions
-      Config.get.actions.each { |action| action.perform(agent, reporter) }
+      Config.get.actions.each { |action| action.perform(@agent, @reporter) }
     end
   end
 end

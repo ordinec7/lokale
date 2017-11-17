@@ -7,13 +7,13 @@ DEFAULT_LOKALEFILE = <<FILE
 add_macro "NSLocalizedString" do |m|
   m.localization_file = "Localizable.strings"
 
-  m.regex = /NSLocalizedString\("(.+?)",\s*comment:\s*"(.*?)"\)/
+  m.regex = /NSLocalizedString\\("(.+?)",\\s*comment:\\s*"(.*?)"\\)/
   m.key_index = 0
   m.note_index = 1
 end
 
 add_macro "PluralString" do |m|
-  m.regex = /String.localizedPlural\("(.+?)"/
+  m.regex = /String.localizedPlural\\("(.+?)"/
   m.key_index = 0
 end
 
