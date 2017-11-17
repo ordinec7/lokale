@@ -1,0 +1,9 @@
+
+add_macro "NSLocalizedString" do |m|
+  m.regex = /NSLocalizedString\("(.+?)",\s*comment:\s*"(.*?)"\)/
+  m.file = "Localizable.strings"
+end
+
+add_macro "PluralString" do |m|
+  m.regex = /String.localizedPlural\("(.+?)"/
+end

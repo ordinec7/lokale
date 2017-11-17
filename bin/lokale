@@ -5,6 +5,7 @@ require 'lokale/find_dir'
 require 'lokale/colorize'
 require 'lokale/config'
 require 'lokale/reporter'
+require 'lokale/lokalefile'
 
 begin
   project_path, project_name = ProjectFinder::find_proj   
@@ -16,6 +17,7 @@ end
 puts "Target Xcode project: '#{project_name}'".green
 
 config = Config.get
+config.read_lokalefile project_path
 
 ########################################################################################
 
