@@ -16,17 +16,28 @@ class Action
   end
 
   def perform_summary(agent, reporter)
-    print "Printing summary".blue
+    print "Printing summary...".blue
     reporter.print_summary
   end
 
   def perform_copy_base(agent, reporter)
-    print "Copying `en` strings files to `Base`".blue
+    print "Copying `en` strings files to `Base`...".blue
     agent.copy_base
   end
 
   def perform_append(agent, reporter)
+    print "Appending new macro calls to localization files...".blue
+    agent.append_new_macro_calls
+  end
 
+  def perform_export(agent, reporter)
+    print "Preparing xliff files with new localized strings...".blue
+    agent.export_xliffs
+  end
+
+  def perform_import(agent, reporter)
+    print "Attempting to import new strings...".blue
+    agent.try_to_import
   end
 end
 

@@ -30,18 +30,20 @@ class Config
     if File.file? lokalefile_path 
       read_config_from_file(lokalefile_path)
     else
-      default_config
+      read_default_config
     end
   end
 
-  def default_config
-    read_config_from_file(nil, DEFAULT_LOKALEFILE)
+  def read_default_config
+    reset_config
+    instance_eval(DEFAULT_LOKALEFILE)
   end
 
-  def read_config_from_file(file_path, content=nil)
-    content ||= File.read(file_path)
+  def read_config_from_file(file_path)
+    content = File.read(file_path)
     reset_config
     instance_eval(content)
+    fill_defaults
   end
 end
 
@@ -55,6 +57,15 @@ class Config
     @macros = nil
     @main_lang = nil
     @base_lang = nil  
+  end
+
+  def fill_defaults
+    default = Config.new
+    default.read_default_config
+
+    @macros ||= default.macros
+    @main_lang ||= default.main_lang
+    @base_lang ||= default.base_lang
   end
 
   private

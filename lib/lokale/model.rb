@@ -22,8 +22,12 @@ module Lokale
     end
 
     def self.strings_from_file(file_path, lang)
-      regex = /(?:\/* (.+) *\/.*\n)?"(.+)" *= *"(.+)";/
+      regex = /(?:\/\* (.+) \*\/.*\n)?"(.+)" *= *"(.+)";/
       File.read(file_path).scan(regex).map { |m| LString.new(m[1], m[2], m[0], lang) }
+    end
+
+    def inspect
+    	"<\#LS:#{@key}; s:#{@str}; n:#{@note}; t:#{@target}>"
     end
   end
 
@@ -48,7 +52,7 @@ module Lokale
     end
 
     def inspect 
-      "<#{@lang}/#{full_name}>"
+      "<LF:#{@lang}/#{full_name}>"
     end
 
     def full_name
@@ -57,6 +61,10 @@ module Lokale
 
     def strings_file?
       @type == "strings" || @type == "stringsdict"
+    end
+
+    def content
+    	File.read(@path)
     end
 
     def parsed
@@ -101,6 +109,7 @@ module Lokale
     def total_count
       @found_strings.values.reduce(:+) || 0
     end
+
   end
 end
 
@@ -108,7 +117,7 @@ end
 
 
 module Lokale
-	
+
 	# Hashable
 	class LString 
 		def fields
