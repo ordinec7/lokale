@@ -3,6 +3,7 @@ require "lokale/colorize"
 require "lokale/util"
 require "lokale/model"
 require "xliffle"
+require "xliffer"
 require "set"
 
 
@@ -28,12 +29,21 @@ module Lokale
 
   class LString
     def write_format
+      note = @note || "(no comment)"
       "/* #{note} */\n\"#{key}\" = \"#{str}\";\n"
     end
 
     def pretty
       "\"#{key}\" = \"#{str}\";"
     end
+
+    def self.from_xliff_string(s, lang)
+      str = LString.new(s.id, s.target, s.note, lang)
+      str.source = s.source
+      str
+    end
+
+
 
     attr_accessor :source
 
@@ -130,37 +140,40 @@ module Lokale
     end
 
     def try_to_import
+      @importer.import_strings(self, @writer)
     end
   end
 
   class Writer 
     def find_append_point(content)
-      ignore_after = content =~ /^\s*?\/\/\s*?\n\s*?\/\/\s*?MARK/
-      string_regexp = /".*?"\s*=\s*".*?"\s*;\s*\n/
+      ignore_after = (content =~ /^\s*?\/\/\s*?\n\s*?\/\/\s*?MARK/) || Float::INFINITY
+      string_regexp = /^".*?"\s*=\s*".*"\s*;/
 
-      append_at = content.match(string_regexp).end(0) - 1
+      append_at = content.match(string_regexp).end(0)
       return if append_at.nil?
       next_try = append_at
       while next_try < ignore_after
         append_at = next_try
-        next_try = content.match(string_regexp, next_try).end(0) - 1
+        next_match = content.match(string_regexp, next_try)
+        break if next_match.nil?
+        next_try = next_match.end(0)
       end
 
-      append_at - 1
+      append_at
     end
 
     def append_new_strings(lstrings, file)
       content = file.content
 
-      puts "Appending #{lstrings.size} new strings to file #{file.lang}/#{file.full_name}".blue
+      puts "Appending #{lstrings.size} new strings to file #{file.lang}/#{file.full_name}:"
       lstrings.each { |ls| puts ls.pretty }
       puts
 
       append_at = find_append_point(content)
-      data_to_append = "\n" + lstrings.map { |ls| ls.write_format }.join("\n")
+      data_to_append = "\n\n" + lstrings.map { |ls| ls.write_format }.join("\n").chomp("\n")
 
       content.insert(append_at, data_to_append)
-      File.write(file.path, content)
+      file.write(content)
     end
   end
 
@@ -207,7 +220,8 @@ module Lokale
     def export(diffs)
       # puts "Exporting stuff"
       diffs.each do |d|
-        puts "Writing xliff for `#{d.lang}` language. Missing strings count: #{d.missing_strings.values.map { |e| e.size }.reduce(:+)}"
+        missing_count = d.missing_strings.values.map { |e| e.size }.reduce(:+)
+        puts "Writing xliff for `#{d.lang}` language. Missing strings count: #{missing_count}"
 
         xliffle = Xliffle.new
         d.missing_strings.each do |lfile, strings|
@@ -217,14 +231,83 @@ module Lokale
           end
         end
 
-        file_name = "#{d.lang}.xliff"
+        file_name = xliff_name(d.lang)
         File.write(file_name, xliffle.to_xliff)
       end
+    end
+
+    def xliff_name(lang)
+      date = Time.now.strftime("%d.%m.%y")
+      "export.#{date}.#{lang}.xliff"
     end
   end
 
   class Importer
-    def look_for_strings(root_path)
+    class Diff
+      attr_accessor :name, :lang, :lstrings
+
+      def self.from_file(xliff_path)
+        begin
+          xliff = XLIFFer::XLIFF.new(File.open(xliff_path))  
+        rescue Exception => e
+          puts "Failed to parse `#{xliff_path}` file."
+        end
+
+        diffs = []
+
+        xliff.files.each do |f|
+          next if f.target_language == Config.get.main_lang
+          next if f.source_language != Config.get.main_lang 
+
+          diff = Diff.new
+          diff.name = f.original
+          diff.lang = f.target_language
+          diff.lstrings = f.strings
+            .map { |s| LString.from_xliff_string(s, f.target_language) }
+            .delete_if { |ls| ls.target.nil? }
+          next if diff.lstrings.empty?
+
+          diffs << diff
+        end
+        diffs
+      end
+    end
+
+    def import_strings(agent, writer)
+      xliff_paths = agent.proj_files
+        .select { |f| f =~ /\.xliff$/ }
+        .delete_if { |f| f =~ /export/ }
+        # .select { |f| puts "select #{f}, #{f =~ /\.xliff^/}"; f =~ /\.xliff^/ }
+        # .delete_if { |f| puts "delete #{f}, #{f =~ /export/}"; f =~ /export/ }
+        
+      return if xliff_paths.empty?
+      diffs = xliff_paths.flat_map { |p| Diff.from_file(p) }
+      diffs.each do |d|
+        lf = file_for_diff(d, agent.lfiles)
+        next if lf.nil?
+
+        content = lf.content
+        strings_to_append = []
+
+        d.lstrings.each do |ls|
+          string_regexp = /^\s*?"#{ls.key}"\s*?=\s*?"(.*?)";/
+          if content =~ string_regexp
+            if $1 != ls.str
+              puts "#{lf.lang}/#{lf.full_name} update \"#{ls.key.blue}\": \"#{$1}\" -> \"#{ls.str.blue}\""
+              content.sub! string_regexp, "\"#{ls.key}\" = \"#{ls.str}\";"
+            end
+          else
+            strings_to_append << ls
+          end
+        end
+
+        lf.write content        
+        writer.append_new_strings(strings_to_append, lf) unless strings_to_append.empty?
+      end
+    end
+
+    def file_for_diff(diff, all_lfiles)
+      all_lfiles.select { |lf| lf.full_name == diff.name && lf.lang == diff.lang }.sample
     end
   end
 end

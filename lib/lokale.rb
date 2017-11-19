@@ -6,38 +6,45 @@ require 'lokale/reporter'
 require 'lokale/lokalefile'
 require 'lokale/agent'
 
-class Action
-  def print(str)
-    puts str.blue
-  end
+module Lokale
+  class Action
+    def print(str)
+      puts str.blue
+    end
 
-  def perform(agent, reporter)
-    send(("perform_" + @type.to_s).to_sym, agent, reporter)
-  end
+    def perform(agent, reporter)
+      send(("perform_" + @type.to_s).to_sym, agent, reporter)
+    end
 
-  def perform_summary(agent, reporter)
-    print "Printing summary...".blue
-    reporter.print_summary
-  end
+    def perform_summary(agent, reporter)
+      print "Printing summary...".blue
+      reporter.print_summary
+    end
 
-  def perform_copy_base(agent, reporter)
-    print "Copying `en` strings files to `Base`...".blue
-    agent.copy_base
-  end
+    def perform_copy_base(agent, reporter)
+      print "Copying `en` strings files to `Base`...".blue
+      agent.copy_base
+    end
 
-  def perform_append(agent, reporter)
-    print "Appending new macro calls to localization files...".blue
-    agent.append_new_macro_calls
-  end
+    def perform_append(agent, reporter)
+      print "Appending new macro calls to localization files...".blue
+      agent.append_new_macro_calls
+    end
 
-  def perform_export(agent, reporter)
-    print "Preparing xliff files with new localized strings...".blue
-    agent.export_xliffs
-  end
+    def perform_export(agent, reporter)
+      print "Preparing xliff files with new localized strings...".blue
+      agent.export_xliffs
+    end
 
-  def perform_import(agent, reporter)
-    print "Attempting to import new strings...".blue
-    agent.try_to_import
+    def perform_import(agent, reporter)
+      print "Attempting to import new strings...".blue
+      agent.try_to_import
+    end
+
+    def perform_create_config(agent, reporter)
+      print "Creating config file...".blue
+      Config.get.create_default_file
+    end
   end
 end
 
@@ -67,7 +74,16 @@ module Lokale
 
     def read_config
       Config.init
-      Config.get.read_lokalefile(@project_path)
+      Config.get.project_path = @project_path
+      Config.get.project_name = @project_name
+
+      begin
+        Config.get.read_lokalefile
+      rescue Exception => e
+        puts "Error reading config file".red
+        puts e
+        exit
+      end
     end
 
     def init_workers

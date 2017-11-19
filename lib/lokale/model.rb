@@ -67,6 +67,10 @@ module Lokale
     	File.read(@path)
     end
 
+    def write(content)
+    	File.write(@path, content)
+    end
+
     def parsed
       return @parsed unless @parsed.nil?
       @parsed = case type

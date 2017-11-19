@@ -1,4 +1,4 @@
-rake install
+rake install:local
 cd ~/Documents/hand2hand-ios
-lokale -e
+lokale -i
 cd ~/Documents/lokale
