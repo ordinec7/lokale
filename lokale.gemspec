@@ -31,6 +31,6 @@ Gem::Specification.new do |spec|
   spec.executables   = ["lokale"]
   spec.require_paths = ["lib"]
 
-  # spec.add_runtime_dependency 'xliffle', '0.2.2'
-  # spec.add_runtime_dependency 'xliffer', '1.0.3'
+  spec.add_runtime_dependency 'xliffle', '0.2.2'
+  spec.add_runtime_dependency 'xliffer', '1.0.3'
 end
