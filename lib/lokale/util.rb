@@ -6,6 +6,10 @@ class String
   def lpadded(count=20)
     "%#{count}.#{count}s" % self
   end
+
+  def nil?
+    empty?
+  end
 end
 
 module Then

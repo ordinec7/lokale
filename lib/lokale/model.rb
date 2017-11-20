@@ -1,21 +1,7 @@
 
-class String
-  def localization_file?
-    File.directory?(self) == false &&
-        (self =~ /\/Pods\//) == nil &&
-        (self =~ /\.bundle\//) == nil &&
-        (self =~ /\/(.{1,8})\.lproj\//)
-  end
-
-  def source_file?
-    (File.directory?(self) == false) && (self =~ /\/Pods\//).nil? && ((self =~ /\.(swift|h|m)$/) != nil)
-  end
-end
-
-
 module Lokale
   class LString
-    attr_accessor :key, :str, :note, :target
+    attr_accessor :key, :str, :note, :target, :source
 
     def initialize(key, str, note, target)
       @key = key; @str = str; @note = note; @target = target
@@ -46,8 +32,15 @@ module Lokale
       @lang = $1
     end
 
+    def self.localization_file?(path)
+	    File.directory?(path) == false &&
+        (path =~ /\/Pods\//) == nil &&
+        (path =~ /\.bundle\//) == nil &&
+        (path =~ /\/(.{1,8})\.lproj\//)
+	  end
+
     def self.try_to_read(file_path)
-      return nil unless file_path.localization_file?
+      return nil unless localization_file? file_path
       LFile.new(file_path)
     end
 

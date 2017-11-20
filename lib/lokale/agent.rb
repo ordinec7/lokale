@@ -29,7 +29,10 @@ module Lokale
 
   class LString
     def write_format
-      note = @note || "(no comment)"
+      note = @note unless @note.empty?
+      note = @source if note.nil?
+      note = "(no comment)" if note.nil?
+
       "/* #{note} */\n\"#{key}\" = \"#{str}\";\n"
     end
 
@@ -42,10 +45,6 @@ module Lokale
       str.source = s.source
       str
     end
-
-
-
-    attr_accessor :source
 
     def for_export(lang)
       str = LString.new(@key, nil, @note, lang)
@@ -83,6 +82,10 @@ module Lokale
       end
     end
 
+    def self.source_file?(path)
+      (File.directory?(path) == false) && (path =~ /\/Pods\//).nil? && ((path =~ /\.(swift|h|m)$/) != nil)
+    end
+
     def get_localization_files
       return @lfiles unless @lfiles.nil?
       @lfiles = proj_files.map { |file| LFile.try_to_read(file) }.compact
@@ -93,7 +96,7 @@ module Lokale
 
       @sfiles_proceeded = 0
       proj_files do |file| 
-        next unless file.source_file?        
+        next unless Agent.source_file? file
 
         file_content = File.read(file)
         @macros.each { |macro| macro.read_from file_content }
