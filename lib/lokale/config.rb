@@ -16,6 +16,7 @@ module Lokale
     def self.export;           Action.new(:export)          end  
     def self.import;           Action.new(:import)          end  
     def self.create_config;    Action.new(:create_config)   end  
+    def self.add_to_proj;      Action.new(:add_to_proj)     end
   end
 
   class Config
@@ -52,6 +53,10 @@ module Lokale
 
         opts.on("-f", "--create-config-file", "Create default `.lokale` config file") do |n|
           actions << Action.create_config
+        end
+
+        opts.on("-p", "--add-to-project", "Creates project strings file") do |n|
+          actions << Action.add_to_proj
         end
 
         opts.on("-h", "--help", "Prints this help") do

@@ -45,6 +45,11 @@ module Lokale
       print "Creating config file...".blue
       Config.get.create_default_file
     end
+
+    def perform_add_to_proj(agent, reporter)
+      print "Creating project file...".blue
+      agent.write_to_project_file
+    end
   end
 end
 

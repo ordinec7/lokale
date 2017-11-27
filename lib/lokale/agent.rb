@@ -6,6 +6,32 @@ require "xliffle"
 require "xliffer"
 require "set"
 
+class Hash
+  def set_by_key_path(key_path, val)
+    last_hash = self
+    last_key = key_path.pop
+    key_path.each do |k|
+      if last_hash.has_key? k 
+        last_hash = last_hash[k]
+      else
+        new_hash = Hash.new
+        last_hash[k] = new_hash
+        last_hash = new_hash
+      end
+    end
+    
+    last_hash[last_key] = val
+  end
+end
+
+class String
+  def camelize(type=:upper)
+    case type
+    when :upper then return self[0].upcase + self[1..-1]
+    when :lower then return self[0].downcase + self[1..-1]
+    end       
+  end
+end
 
 module Lokale
   class LFile
@@ -58,11 +84,12 @@ end
 
 module Lokale 
   class Agent
-    attr_reader :proj_path, :macros, :lfiles, :sfiles_proceeded
+    attr_reader :proj_path, :macros, :lfiles, :sfiles_proceeded, :project_lfiles
 
     def initialize(proj_path, macros)
       @proj_path = proj_path
       @macros = macros
+      @project_lfiles = []
 
       @writer = Writer.new
       @exporter = Exporter.new
@@ -104,9 +131,25 @@ module Lokale
       end
     end
 
+    def find_project_lfiles
+      macro_proj_files = @macros.map { |m| m.project_file }.compact
+      return if macro_proj_files.empty?
+
+      h = Hash.new
+      proj_files do |f|
+        macro_proj_files.each do |pf|
+          h[pf] = f if f.chomp(pf) != f
+        end
+      end
+
+      return h
+    end
+
     ###
 
     def copy_base
+      return if Config.get.base_lang.nil? || Config.get.main_lang.nil?
+
       main_lfiles = @lfiles.group_by { |f| f.lang }[Config.get.main_lang].select { |f| f.strings_file? }
       base_lfiles = @lfiles.group_by { |f| f.lang }[Config.get.base_lang].select { |f| f.strings_file? }
 
@@ -145,6 +188,20 @@ module Lokale
     def try_to_import
       @importer.import_strings(self, @writer)
     end
+
+    def write_to_project_file
+      strings_to_write = Hash.new { |h, k| h[k] = [] }
+      @macros.each do |m|
+        next if m.project_file.nil?
+        next if m.found_strings.nil?
+        strings_to_write[m.project_file] += m.found_strings.keys
+      end
+
+      pfiles_pathes = find_project_lfiles
+      strings_to_write.each do |file, lstrings|
+        @writer.write_to_project_file(lstrings, pfiles_pathes[file])
+      end
+    end
   end
 
   class Writer 
@@ -177,6 +234,35 @@ module Lokale
 
       content.insert(append_at, data_to_append)
       file.write(content)
+    end
+
+    def hash_string(hash, depth)
+      total_string = ""
+      tab = "    " * depth
+      hash.each do |k, v|
+        case v
+        when LString
+          total_string += tab + "static let #{v.key.split(".")[-1].camelize(:lower)} = NSLocalizedString(\"#{v.key}\", comment:\"#{v.note}\")\n"
+        when Hash
+          total_string += tab + "\n"
+          total_string += tab + "class #{k.camelize} {\n"
+          total_string += hash_string(v, depth + 1)
+          total_string += tab + "}\n\n"
+        end
+      end
+
+      total_string
+    end
+
+    def write_to_project_file(lstrings, file)
+      root = Hash.new
+      lstrings.each do |ls|
+        root.set_by_key_path ls.key.split("."), ls
+      end
+
+      content = "\nextension String {\n\n" + hash_string(root, 1) + "}\n"
+      File.write(file, content)
+
     end
   end
 

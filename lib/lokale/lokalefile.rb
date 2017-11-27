@@ -7,6 +7,7 @@ module Lokale
 
 add_macro "NSLocalizedString" do |m|
   m.localization_file = "Localizable.strings"
+  m.project_file = "Strings.swift"
 
   m.regex = /NSLocalizedString\\("(.+?)",\\s*comment:\\s*"(.*?)"\\)/
   m.key_index = 0

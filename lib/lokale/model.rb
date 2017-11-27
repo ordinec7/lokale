@@ -44,7 +44,7 @@ module Lokale
       LFile.new(file_path)
     end
 
-    def inspect 
+    def inspect
       "<LF:#{@lang}/#{full_name}>"
     end
 
@@ -77,7 +77,7 @@ module Lokale
   #
 
   class Macro
-    attr_accessor :regex, :name, :localization_file, :key_index, :note_index
+    attr_accessor :regex, :name, :localization_file, :key_index, :note_index, :project_file
     attr_reader :found_strings
 
     def initialize(name)
@@ -106,7 +106,6 @@ module Lokale
     def total_count
       @found_strings.values.reduce(:+) || 0
     end
-
   end
 end
 
